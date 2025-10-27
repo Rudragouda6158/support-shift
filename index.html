@@ -1,46 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Who’s On Shift</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Support Shift Dashboard</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background-color: #f7f9fb;
+      text-align: center;
+      padding-top: 80px;
+    }
+    .card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: inline-block;
+      padding: 30px 60px;
+    }
+    h1 {
+      color: #0066ff;
+    }
+    .shift {
+      margin-top: 15px;
+      font-size: 20px;
+      color: #007700;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🧑‍💻 Support Shift Dashboard</h1>
-    <h2 id="current-shift">Loading...</h2>
-    <h3 id="next-shift"></h3>
+  <div class="card">
+    <h1>👩‍💻 Support Shift Dashboard</h1>
+    <div id="shiftInfo" class="shift">Loading...</div>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
-    async function loadExcel() {
-      const response = await fetch('shifts.xlsx');
-      const arrayBuffer = await response.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: "array" });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(sheet);
+    async function loadShifts() {
+      try {
+        const response = await fetch('shifts.xlsx');
+        const data = await response.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet);
 
-      const now = new Date();
-      let current = null, next = null;
+        const today = new Date().toISOString().split('T')[0];
+        const todayShifts = json.filter(row => row.Date === today);
 
-      data.forEach(row => {
-        const start = new Date(row["Start Time"]);
-        const end = new Date(row["End Time"]);
-        if (now >= start && now <= end) current = row;
-        else if (now < start && !next) next = row;
-      });
-
-      document.getElementById('current-shift').textContent =
-        current ? `🟢 On Shift: ${current.Name} (${current["Shift Time"]})`
-                : '❌ No one currently on shift';
-
-      document.getElementById('next-shift').textContent =
-        next ? `Next Shift: ${next.Name} (${next["Shift Time"]})` : '';
+        const shiftDiv = document.getElementById('shiftInfo');
+        if (todayShifts.length === 0) {
+          shiftDiv.innerHTML = "❌ No one currently on shift";
+        } else {
+          shiftDiv.innerHTML = todayShifts
+            .map(s => `✅ ${s.Name} (${s["Shift Time"]})`)
+            .join("<br>");
+        }
+      } catch (error) {
+        document.getElementById('shiftInfo').innerHTML = "⚠️ Failed to load shift data.";
+      }
     }
 
-    loadExcel();
+    loadShifts();
   </script>
 </body>
 </html>
