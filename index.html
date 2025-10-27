@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Who’s On Shift</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>🧑‍💻 Support Shift Dashboard</h1>
+    <h2 id="current-shift">Loading...</h2>
+    <h3 id="next-shift"></h3>
+  </div>
+
+  <script>
+    async function loadExcel() {
+      const response = await fetch('shifts.xlsx');
+      const arrayBuffer = await response.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(sheet);
+
+      const now = new Date();
+      let current = null, next = null;
+
+      data.forEach(row => {
+        const start = new Date(row["Start Time"]);
+        const end = new Date(row["End Time"]);
+        if (now >= start && now <= end) current = row;
+        else if (now < start && !next) next = row;
+      });
+
+      document.getElementById('current-shift').textContent =
+        current ? `🟢 On Shift: ${current.Name} (${current["Shift Time"]})`
+                : '❌ No one currently on shift';
+
+      document.getElementById('next-shift').textContent =
+        next ? `Next Shift: ${next.Name} (${next["Shift Time"]})` : '';
+    }
+
+    loadExcel();
+  </script>
+</body>
+</html>
